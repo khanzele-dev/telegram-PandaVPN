@@ -1,0 +1,189 @@
+import { Api } from "grammy";
+import { NotificationType } from "../types/models";
+import {
+  fetchNotify,
+  fetchUserSubscription,
+  generatePromoCode,
+  updateLastNotification,
+} from "../config/requests";
+import {
+  calculateSubscriptionStatus,
+  getNotificationType,
+  shouldSendNotification,
+} from "../shared/subscription";
+
+const SUPPORT_URL = "https://vpn-p.ru/support";
+const CABINET_URL = "https://vpn-p.ru/auth/signup";
+
+const getNotificationMessage = async (
+  notificationType: NotificationType,
+  promoCode?: string,
+  daysExpired?: number
+): Promise<string> => {
+  switch (notificationType) {
+    case NotificationType.THREE_DAYS:
+      return `⏳ <b>До окончания подписки — 3 дня</b>
+
+Продлите доступ, чтобы VPN работал без остановок.
+
+👉 <a href="${CABINET_URL}">Продлить подписку</a>`;
+
+    case NotificationType.ONE_DAY:
+      return `⚠️ <b>Завтра ваш VPN перестанет работать!</b>
+
+До окончания вашей подписки остался 1 день.
+Чтобы интернет продолжал работать без ограничений — рекомендуем продлить доступ заранее.
+
+👉 <a href="${CABINET_URL}">Продлить можно прямо сейчас в личном кабинете</a>`;
+
+    case NotificationType.EXPIRED:
+      return `🛑 <b>Уведомление</b>
+
+Срок действия вашей подписки PandaVPN 🐼 истёк.
+
+Восстановите доступ прямо сейчас, чтобы оставаться на связи с быстрым и надежным VPN сервисом.
+
+👉 <a href="${CABINET_URL}">Продлить подписку</a>`;
+
+    case NotificationType.TWO_DAYS_EXPIRED:
+      return `⛔️ <b>Подписка неактивна</b>
+
+Ваша подписка закончилась 2 дня назад.
+Сейчас VPN недоступен, но вы можете прямо сейчас восстановить доступ, просто продлив подписку на сайте в личном кабинете.
+
+👉 <a href="${CABINET_URL}">Продлить подписку</a>`;
+
+    case NotificationType.FIVE_DAYS_EXPIRED:
+      return `👋 <b>Просто напомним</b>
+
+Подписка закончилась 5 дней назад.
+Вы можете продлить подписку прямо сейчас в личном кабинете на сайте.
+
+👉 <a href="${CABINET_URL}">Продлить подписку</a>
+
+А если столкнулись с какой либо проблемой обязательно пишите нам в техподдержку, чтобы мы вам помогли.
+
+🤳 <a href="${SUPPORT_URL}">Техподдержка</a>
+
+Мы на связи 🤝🐼`;
+
+    case NotificationType.TEN_DAYS_EXPIRED:
+      return `🎁 <b>Подарок от нас</b>
+
+Ваша подписка PandaVPN 🐼 закончилась 10 дней назад 😱
+Мы решили сделать вам подарок 😊
+
+Мы дарим 5 дней бесплатного доступа — чтобы вы могли снова воспользоваться VPN без оплаты.
+
+👉 Используйте промокод: <code>${promoCode}</code>
+
+Вы можете абсолютно бесплатно продлить подписку прямо сейчас в личном кабинете на сайте. Перейдите из главного меню по кнопке «Промокоды» и введите полученный вами промокод.
+
+🌐 <a href="${CABINET_URL}">Личный кабинет</a>
+
+А если столкнулись с какой либо проблемой обязательно пишите нам в техподдержку, чтобы мы вам помогли.
+
+🤳 <a href="${SUPPORT_URL}">Техподдержка</a>
+
+Мы на связи 🤝🐼`;
+
+    case NotificationType.ONE_MONTH_EXPIRED:
+      return `👋 <b>Напомним</b>
+
+Прошёл уже месяц с момента окончания вашей подписки,
+а вы всё ещё не воспользовались бесплатным промокодом 🎁
+
+👉 <code>${promoCode}</code>
+
+Он по-прежнему даёт 5 дней бесплатного доступа, если VPN снова понадобится.
+
+🌐 <a href="${CABINET_URL}">Активировать промокод</a>
+
+Мы на связи 🤝🐼
+🤳 <a href="${SUPPORT_URL}">Техподдержка</a>`;
+
+    case NotificationType.WEEKLY_REMINDER:
+      return `🐼 <b>PandaVPN дарит 5 дней бесплатного пользования</b>
+
+Протестируйте наш супер-быстрый VPN 🔥
+
+Воспользуйтесь промокодом 👉🏻 <code>${promoCode}</code>
+
+Перейдя в личный кабинет на сайте.
+
+🌐 <a href="${CABINET_URL}">Личный кабинет</a>
+
+А если столкнулись с какой либо проблемой обязательно пишите нам в техподдержку, чтобы мы вам помогли.
+
+🤳 <a href="${SUPPORT_URL}">Техподдержка</a>
+
+Мы на связи 🤝🐼`;
+
+    default:
+      return "";
+  }
+};
+
+const api = new Api(process.env.BOT_TOKEN as string);
+
+export const sendNotification = async (
+  telegramId: string,
+  notificationType: NotificationType,
+  promoCode?: string,
+  daysExpired?: number
+): Promise<void> => {
+  try {
+    const message = await getNotificationMessage(
+      notificationType,
+      promoCode,
+      daysExpired
+    );
+
+    if (message) {
+      await api.sendMessage(telegramId, message, {
+        parse_mode: "HTML",
+        link_preview_options: { is_disabled: true },
+      });
+
+      await updateLastNotification(telegramId, notificationType);
+    }
+  } catch (error) {
+    console.error(`Error sending notification to ${telegramId}:`, error);
+  }
+};
+
+export const checkSubscriptionsAndNotify = async (): Promise<void> => {
+  try {
+    const notifyData = await fetchNotify();
+    const users = notifyData.users;
+
+    for (const user of users) {
+      const status = calculateSubscriptionStatus(user);
+      const notificationType = getNotificationType(status);
+
+      if (notificationType && shouldSendNotification(user, notificationType)) {
+        let promoCode = user.promo_code;
+
+        if (
+          notificationType === NotificationType.TEN_DAYS_EXPIRED &&
+          !promoCode
+        ) {
+          promoCode = await generatePromoCode(user.telegram_id, 5);
+        }
+
+        await sendNotification(
+          user.telegram_id,
+          notificationType,
+          promoCode,
+          status.daysExpired
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`Subscription check completed. Checked ${users.length} users.`);
+  } catch (error) {
+    console.error("Error in checkSubscriptionsAndNotify:", error);
+  }
+};
