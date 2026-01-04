@@ -1,16 +1,14 @@
-import { Api } from "grammy";
 import { NotificationType } from "../types/models";
 import {
   fetchNotify,
-  fetchUserSubscription,
   generatePromoCode,
-  updateLastNotification,
 } from "../config/requests";
 import {
   calculateSubscriptionStatus,
   getNotificationType,
   shouldSendNotification,
 } from "../shared/subscription";
+import { addNotificationToQueue } from "../services/notificationQueue";
 
 const SUPPORT_URL = "https://vpn-p.ru/support";
 const CABINET_URL = "https://vpn-p.ru/auth/signup";
@@ -124,38 +122,12 @@ const getNotificationMessage = async (
   }
 };
 
-const api = new Api(process.env.BOT_TOKEN as string);
-
-export const sendNotification = async (
-  telegramId: string,
-  notificationType: NotificationType,
-  promoCode?: string,
-  daysExpired?: number
-): Promise<void> => {
-  try {
-    const message = await getNotificationMessage(
-      notificationType,
-      promoCode,
-      daysExpired
-    );
-
-    if (message) {
-      await api.sendMessage(telegramId, message, {
-        parse_mode: "HTML",
-        link_preview_options: { is_disabled: true },
-      });
-
-      await updateLastNotification(telegramId, notificationType);
-    }
-  } catch (error) {
-    console.error(`Error sending notification to ${telegramId}:`, error);
-  }
-};
-
 export const checkSubscriptionsAndNotify = async (): Promise<void> => {
   try {
     const notifyData = await fetchNotify();
     const users = notifyData.users;
+
+    console.log(`Starting subscription check for ${users.length} users...`);
 
     for (const user of users) {
       const status = calculateSubscriptionStatus(user);
@@ -171,18 +143,26 @@ export const checkSubscriptionsAndNotify = async (): Promise<void> => {
           promoCode = await generatePromoCode(user.telegram_id, 5);
         }
 
-        await sendNotification(
-          user.telegram_id,
+        const message = await getNotificationMessage(
           notificationType,
           promoCode,
           status.daysExpired
         );
 
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        if (message) {
+          // Добавляем задачу в очередь вместо прямой отправки
+          await addNotificationToQueue(
+            user.telegram_id,
+            notificationType,
+            message,
+            promoCode,
+            status.daysExpired
+          );
+        }
       }
     }
 
-    console.log(`Subscription check completed. Checked ${users.length} users.`);
+    console.log(`Subscription check completed. Added notifications for ${users.length} users to queue.`);
   } catch (error) {
     console.error("Error in checkSubscriptionsAndNotify:", error);
   }

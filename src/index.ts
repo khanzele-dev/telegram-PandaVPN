@@ -7,6 +7,7 @@ import { conversations, createConversation } from "@grammyjs/conversations";
 import { Bot, GrammyError, HttpError, NextFunction } from "grammy";
 import { broadcastConversation, registrationConversation } from "./handlers/conversations";
 import { initSubscriptionScheduler } from "./services/scheduler";
+import "./services/notificationQueue";
 
 dotenv.config({ path: "src/.env" });
 

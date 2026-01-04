@@ -37,7 +37,11 @@ export const fetchRegisterUser = async (telegramId: number, phone: string) => {
 };
 
 export const fetchNotify = async () => {
-  const { data } = await axios.get(`${process.env.API_URL}/bot/notify`, {});
+  const { data } = await axios.get(`${process.env.API_URL}/bot/notify`, {
+    headers: {
+      "X-INTERNAL-TOKEN": process.env.INTERNAL_TOKEN,
+    },
+  });
   return data;
 };
 
@@ -45,9 +49,17 @@ export const fetchNotify = async () => {
 export const fetchUserSubscription = async (
   telegramId: string
 ): Promise<IUserSubscription> => {
-  const { data } = await axios.post(`${process.env.API_URL}/bot/subscription`, {
-    telegram_id: telegramId,
-  });
+  const { data } = await axios.post(
+    `${process.env.API_URL}/bot/subscription`,
+    {
+      telegram_id: telegramId,
+    },
+    {
+      headers: {
+        "X-INTERNAL-TOKEN": process.env.INTERNAL_TOKEN,
+      },
+    }
+  );
   return data;
 };
 
@@ -55,15 +67,27 @@ export const generatePromoCode = async (
   telegramId: string,
   days: number = 5
 ): Promise<string> => {
-  const { data } = await axios.post("/bot/promo/generate", {
-    telegram_id: telegramId,
-    days: days,
-  });
+  const { data } = await axios.post(
+    `${process.env.API_URL}/bot/promo/generate`,
+    {
+      telegram_id: telegramId,
+      days: days,
+    },
+    {
+      headers: {
+        "X-INTERNAL-TOKEN": process.env.INTERNAL_TOKEN,
+      },
+    }
+  );
   return data.promo_code;
 };
 
 export const fetchAllActiveUsers = async (): Promise<IUserSubscription[]> => {
-  const { data } = await axios.get("/bot/users/active");
+  const { data } = await axios.get(`${process.env.API_URL}/bot/users/active`, {
+    headers: {
+      "X-INTERNAL-TOKEN": process.env.INTERNAL_TOKEN,
+    },
+  });
   return data;
 };
 
@@ -71,9 +95,17 @@ export const updateLastNotification = async (
   telegramId: string,
   notificationType: string
 ) => {
-  const { data } = await axios.post("/bot/notification/update", {
-    telegram_id: telegramId,
-    notification_type: notificationType,
-  });
+  const { data } = await axios.post(
+    `${process.env.API_URL}/bot/notification/update`,
+    {
+      telegram_id: telegramId,
+      notification_type: notificationType,
+    },
+    {
+      headers: {
+        "X-INTERNAL-TOKEN": process.env.INTERNAL_TOKEN,
+      },
+    }
+  );
   return data;
 };

@@ -1,1 +1,0 @@
-Test-NetConnection -ComputerName api.telegram.org -Port 443
