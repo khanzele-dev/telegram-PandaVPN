@@ -4,7 +4,7 @@ import { checkSubscriptionsAndNotify } from "../handlers/notifications";
 let isRunning = false;
 
 export const initSubscriptionScheduler = (): void => {
-  cron.schedule("50 11 * * *", async () => {
+  cron.schedule("50 12 * * *", async () => {
     if (isRunning) {
       console.log("Subscription check already running, skipping...");
       return;
