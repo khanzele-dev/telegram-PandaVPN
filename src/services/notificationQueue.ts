@@ -2,6 +2,7 @@ import Queue from "bull";
 import { Api } from "grammy";
 import { NotificationType } from "../types/models";
 import { updateLastNotification } from "../config/requests";
+import { getNotificationKeyboard } from "../shared/keyboard";
 
 interface NotificationJob {
   telegramId: string;
@@ -28,9 +29,12 @@ notificationQueue.process(async (job) => {
   const { telegramId, notificationType, message } = job.data;
 
   try {
+    const keyboard = getNotificationKeyboard(notificationType);
+    
     await api.sendMessage(telegramId, message, {
       parse_mode: "HTML",
       link_preview_options: { is_disabled: true },
+      reply_markup: keyboard,
     });
 
     await updateLastNotification(telegramId, notificationType);
@@ -61,6 +65,9 @@ export const addNotificationToQueue = async (
   promoCode?: string,
   daysExpired?: number
 ): Promise<void> => {
+  const today = new Date().toISOString().split('T')[0];
+  const jobId = `${telegramId}-${notificationType}-${today}`;
+  
   await notificationQueue.add(
     {
       telegramId,
@@ -70,7 +77,8 @@ export const addNotificationToQueue = async (
       daysExpired,
     },
     {
-      attempts: 3,
+      jobId,
+      attempts: 1,
       backoff: {
         type: "exponential",
         delay: 2000,
