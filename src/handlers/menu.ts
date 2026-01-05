@@ -7,7 +7,6 @@ export const mainMenu = new Menu<MyContext>("main-menu")
   .url("🌐 Продлить VPN", "https://vpn-p.ru/auth/signup")
   .row()
   .text("❓ Что я умею?", info)
-  .row()
   .text("🤳🏻 Поддержка", help);
 
 export const adminMenu = new Menu<MyContext>("admin-menu")

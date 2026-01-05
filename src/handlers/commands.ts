@@ -17,7 +17,6 @@ export const start = async (ctx: MyContext) => {
     const startPayload = ctx.match;
     if (startPayload === "from_site") {
       const userRegistered = await isRegistered(ctx);
-      console.log(userRegistered)
       if (!userRegistered) {
         await ctx.conversation.enter("registrationConversation");
         return;
@@ -36,7 +35,13 @@ export const start = async (ctx: MyContext) => {
         return;
       } else {
         await ctx.reply(
-          "Добро пожаловать обратно.",
+          `🐼 Добро пожаловать обратно, ${
+            ctx.from?.username
+              ? `@${ctx.from.username}`
+              : ctx.from?.first_name
+              ? ctx.from.first_name
+              : "гость"
+          }!`,
           {
             reply_markup: mainMenu,
           }
