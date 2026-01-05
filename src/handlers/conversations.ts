@@ -17,9 +17,13 @@ export async function registrationConversation(
   const { message } = await conversation.wait();
 
   if (!message?.contact?.phone_number) {
-    await ctx.reply("❌ Необходимо поделиться номером телефона для регистрации.", {
-      reply_markup: { remove_keyboard: true },
-    });
+    await ctx.reply(
+      "❌ Необходимо поделиться номером телефона для регистрации.",
+      {
+        reply_markup: { remove_keyboard: true },
+      }
+    );
+    await registrationConversation(conversation, ctx);
     return;
   }
 
