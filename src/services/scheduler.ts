@@ -6,13 +6,10 @@ let isRunning = false;
 export const initSubscriptionScheduler = (): void => {
   cron.schedule("50 12 * * *", async () => {
     if (isRunning) {
-      console.log("Subscription check already running, skipping...");
       return;
     }
     
     isRunning = true;
-    console.log("Running subscription check...");
-    
     try {
       await checkSubscriptionsAndNotify();
     } catch (error) {
@@ -23,6 +20,4 @@ export const initSubscriptionScheduler = (): void => {
   }, {
     timezone: "Europe/Moscow",
   });
-
-  console.log("Subscription scheduler initialized. Will run daily at 11:30 Moscow time.");
 };

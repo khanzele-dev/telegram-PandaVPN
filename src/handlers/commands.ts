@@ -15,14 +15,12 @@ import {
 import { HelpKeyboard } from "../shared/keyboard";
 import { isRegistered, getUserData } from "./middlewares";
 
-// Обработка привязки email
 async function handleEmailBinding(
   ctx: MyContext,
   telegramId: number,
   email: string
 ): Promise<void> {
   try {
-    // Проверяем валидность email
     if (!isValidEmail(email)) {
       await ctx.reply(
         "❌ <b>Некорректный email</b>\n\nПожалуйста, проверьте правильность введённого адреса электронной почты.",
@@ -31,7 +29,6 @@ async function handleEmailBinding(
       return;
     }
 
-    // Получаем данные текущего пользователя
     const userData = await getUserData(telegramId);
     if (!userData) {
       await ctx.reply(
@@ -41,7 +38,6 @@ async function handleEmailBinding(
       return;
     }
 
-    // Проверяем, не привязан ли уже email к этому аккаунту
     if (userData.email) {
       if (userData.email.toLowerCase() === email.toLowerCase()) {
         await ctx.reply(
@@ -58,7 +54,6 @@ async function handleEmailBinding(
       }
     }
 
-    // Проверяем, не занят ли email другим пользователем
     const existingUser = await checkEmailAvailability(email);
     if (existingUser && existingUser.telegram_id !== telegramId) {
       await ctx.reply(
@@ -68,7 +63,6 @@ async function handleEmailBinding(
       return;
     }
 
-    // Привязываем email
     await bindEmail(telegramId, email);
     await ctx.reply(
       `✅ <b>Email успешно привязан!</b>\n\nВаш аккаунт теперь связан с email: <code>${email}</code>\n\nТеперь вы можете входить на сайт через свой Telegram-аккаунт.`,

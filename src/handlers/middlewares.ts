@@ -1,17 +1,17 @@
 import { fetchUserData, AdminFindResponse } from "../config/requests";
 import { MyContext } from "../types";
 
-// Универсальная проверка регистрации по telegram_id
 export async function isRegisteredById(telegramId: number): Promise<boolean> {
   try {
     await fetchUserData(telegramId.toString());
+    console.log("User data found for telegramId:", telegramId);
     return true;
   } catch {
+    console.log("User data not found for telegramId:", telegramId);
     return false;
   }
 }
 
-// Проверка регистрации через контекст (для обратной совместимости)
 export async function isRegistered(ctx: MyContext): Promise<boolean> {
   try {
     if (!ctx.from?.id) {
@@ -24,7 +24,6 @@ export async function isRegistered(ctx: MyContext): Promise<boolean> {
   }
 }
 
-// Получение данных пользователя
 export async function getUserData(telegramId: number): Promise<AdminFindResponse | null> {
   try {
     return await fetchUserData(telegramId.toString());

@@ -35,7 +35,6 @@ export const adminFind = async (
   return data;
 };
 
-// auth requests - обновлено для использования нового API
 export const fetchUserData = async (telegramId: string): Promise<AdminFindResponse> => {
   const { data } = await api.get("/api/admin/find", {
     params: { telegram_id: telegramId },

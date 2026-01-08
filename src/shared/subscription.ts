@@ -1,8 +1,5 @@
 import { ISubscriptionStatus, IUserSubscription, NotificationType } from "../types/models";
 
-/**
- * Рассчитывает статус подписки пользователя
- */
 export const calculateSubscriptionStatus = (subscription: IUserSubscription): ISubscriptionStatus => {
   const now = new Date();
   const endDate = subscription.subscription_end_date ? new Date(subscription.subscription_end_date) : null;
@@ -22,7 +19,6 @@ export const calculateSubscriptionStatus = (subscription: IUserSubscription): IS
   const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
   if (daysDiff >= 0) {
-    // Подписка активна
     return {
       isActive: true,
       daysRemaining: daysDiff,
@@ -32,7 +28,6 @@ export const calculateSubscriptionStatus = (subscription: IUserSubscription): IS
       promoCodeUsed: subscription.promo_code_used,
     };
   } else {
-    // Подписка истекла
     return {
       isActive: false,
       daysRemaining: 0,
@@ -44,19 +39,14 @@ export const calculateSubscriptionStatus = (subscription: IUserSubscription): IS
   }
 };
 
-/**
- * Определяет тип уведомления на основе статуса подписки
- */
 export const getNotificationType = (status: ISubscriptionStatus): NotificationType | null => {
   if (status.isActive) {
-    // Активная подписка
     if (status.daysRemaining === 3) {
       return NotificationType.THREE_DAYS;
     } else if (status.daysRemaining === 1) {
       return NotificationType.ONE_DAY;
     }
   } else {
-    // Истекшая подписка
     if (status.daysExpired === 0) {
       return NotificationType.EXPIRED;
     } else if (status.daysExpired === 2) {
@@ -74,9 +64,6 @@ export const getNotificationType = (status: ISubscriptionStatus): NotificationTy
   return null;
 };
 
-/**
- * Форматирует дату для отображения
- */
 export const formatDate = (date: Date): string => {
   return date.toLocaleDateString("ru-RU", {
     day: "2-digit",
@@ -85,9 +72,6 @@ export const formatDate = (date: Date): string => {
   });
 };
 
-/**
- * Проверяет, нужно ли отправить уведомление
- */
 export const shouldSendNotification = (
   subscription: IUserSubscription,
   notificationType: NotificationType
@@ -102,11 +86,10 @@ export const shouldSendNotification = (
     (now.getTime() - lastSent.getTime()) / (1000 * 3600 * 24)
   );
 
-  // Для еженедельных напоминаний - отправляем раз в неделю
   if (notificationType === NotificationType.WEEKLY_REMINDER) {
     return daysSinceLastNotification >= 7;
   }
 
-  // Для остальных уведомлений - отправляем один раз
   return daysSinceLastNotification >= 1;
 };
+  if (!subscription.last_notification_sent) {

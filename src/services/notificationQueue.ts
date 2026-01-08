@@ -36,25 +36,17 @@ notificationQueue.process(async (job) => {
     });
 
     await updateLastNotification(telegramId, notificationType);
-
-    console.log(`Notification sent to ${telegramId}: ${notificationType}`);
   } catch (error) {
     console.error(`Error sending notification to ${telegramId}:`, error);
     throw error;
   }
 });
 
-notificationQueue.on("completed", (job) => {
-  console.log(`Job ${job.id} completed`);
-});
+notificationQueue.on("completed", (job) => {});
 
-notificationQueue.on("failed", (job, err) => {
-  console.error(`Job ${job?.id} failed:`, err);
-});
+notificationQueue.on("failed", (job, err) => {});
 
-notificationQueue.on("error", (error) => {
-  console.error("Queue error:", error);
-});
+notificationQueue.on("error", (error) => {});
 
 export const addNotificationToQueue = async (
   telegramId: string,
