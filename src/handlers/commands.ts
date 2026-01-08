@@ -29,6 +29,15 @@ async function handleEmailBinding(
       return;
     }
 
+    const existingUser = await checkEmailAvailability(email);
+    if (existingUser && existingUser.telegram_id && existingUser.telegram_id !== telegramId) {
+      await ctx.reply(
+        "❌ <b>Email уже используется</b>\n\nЭтот email уже привязан к другому аккаунту. Если это ваш email, обратитесь в поддержку.",
+        { parse_mode: "HTML", reply_markup: mainMenu }
+      );
+      return;
+    }
+
     const userData = await getUserData(telegramId);
     if (!userData) {
       await ctx.reply(
@@ -52,15 +61,6 @@ async function handleEmailBinding(
         );
         return;
       }
-    }
-
-    const existingUser = await checkEmailAvailability(email);
-    if (existingUser && existingUser.telegram_id !== telegramId) {
-      await ctx.reply(
-        "❌ <b>Email уже используется</b>\n\nЭтот email уже привязан к другому аккаунту. Если это ваш email, обратитесь в поддержку.",
-        { parse_mode: "HTML", reply_markup: mainMenu }
-      );
-      return;
     }
 
     await bindEmail(telegramId, email);
@@ -216,6 +216,7 @@ export const subscription = async (ctx: MyContext) => {
       link_preview_options: { is_disabled: true },
     });
   } catch (error) {
+    console.error("Error in subscription command:", error);
     await ctx.reply("Произошла ошибка при получении информации о подписке. Попробуйте позже.");
   }
 };

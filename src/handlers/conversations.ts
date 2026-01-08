@@ -23,6 +23,15 @@ async function handleEmailBindingInConversation(
       return;
     }
 
+    const existingUser = await checkEmailAvailability(email);
+    if (existingUser && existingUser.telegram_id && existingUser.telegram_id !== telegramId) {
+      await ctx.reply(
+        "❌ <b>Email уже используется</b>\n\nЭтот email уже привязан к другому аккаунту. Если это ваш email, обратитесь в поддержку.",
+        { parse_mode: "HTML", reply_markup: mainMenu }
+      );
+      return;
+    }
+
     let userData;
     try {
       userData = await fetchUserData(telegramId.toString());
@@ -48,15 +57,6 @@ async function handleEmailBindingInConversation(
         );
         return;
       }
-    }
-
-    const existingUser = await checkEmailAvailability(email);
-    if (existingUser && existingUser.telegram_id !== telegramId) {
-      await ctx.reply(
-        "❌ <b>Email уже используется</b>\n\nЭтот email уже привязан к другому аккаунту. Если это ваш email, обратитесь в поддержку.",
-        { parse_mode: "HTML", reply_markup: mainMenu }
-      );
-      return;
     }
 
     await bindEmail(telegramId, email);
