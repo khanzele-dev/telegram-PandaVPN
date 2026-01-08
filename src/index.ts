@@ -5,7 +5,7 @@ import { adminMenu, mainMenu } from "./handlers/menu";
 import { MyContext, MyConversationContext } from "./types";
 import { conversations, createConversation } from "@grammyjs/conversations";
 import { Bot, GrammyError, HttpError, NextFunction } from "grammy";
-import { broadcastConversation, registrationConversation } from "./handlers/conversations";
+import { broadcastConversation, registrationConversation, registrationWithEmailConversation } from "./handlers/conversations";
 import { initSubscriptionScheduler } from "./services/scheduler";
 import "./services/notificationQueue";
 
@@ -28,6 +28,7 @@ commands.map((command) => {
 
 bot.use(createConversation(broadcastConversation));
 bot.use(createConversation(registrationConversation));
+bot.use(createConversation(registrationWithEmailConversation));
 
 bot.use(adminMenu);
 bot.use(mainMenu);

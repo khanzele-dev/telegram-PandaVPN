@@ -1,21 +1,120 @@
 import { username } from "../shared";
 import { MyContext } from "../types";
 import { adminMenu, mainMenu } from "./menu";
-import { fetchUserSubscription } from "../config/requests";
+import {
+  fetchUserSubscription,
+  isValidEmail,
+  bindEmail,
+  checkEmailAvailability,
+  fetchUserData,
+} from "../config/requests";
 import {
   calculateSubscriptionStatus,
   formatDate,
 } from "../shared/subscription";
 import { HelpKeyboard } from "../shared/keyboard";
-import { isRegistered } from "./middlewares";
+import { isRegistered, getUserData } from "./middlewares";
+
+// Обработка привязки email
+async function handleEmailBinding(
+  ctx: MyContext,
+  telegramId: number,
+  email: string
+): Promise<void> {
+  try {
+    // Проверяем валидность email
+    if (!isValidEmail(email)) {
+      await ctx.reply(
+        "❌ <b>Некорректный email</b>\n\nПожалуйста, проверьте правильность введённого адреса электронной почты.",
+        { parse_mode: "HTML", reply_markup: mainMenu }
+      );
+      return;
+    }
+
+    // Получаем данные текущего пользователя
+    const userData = await getUserData(telegramId);
+    if (!userData) {
+      await ctx.reply(
+        "❌ <b>Ошибка</b>\n\nНе удалось получить данные пользователя. Попробуйте позже.",
+        { parse_mode: "HTML", reply_markup: mainMenu }
+      );
+      return;
+    }
+
+    // Проверяем, не привязан ли уже email к этому аккаунту
+    if (userData.email) {
+      if (userData.email.toLowerCase() === email.toLowerCase()) {
+        await ctx.reply(
+          `✅ <b>Email уже привязан</b>\n\nВаш аккаунт уже связан с этим email: <code>${email}</code>`,
+          { parse_mode: "HTML", reply_markup: mainMenu }
+        );
+        return;
+      } else {
+        await ctx.reply(
+          `⚠️ <b>К вашему аккаунту уже привязан другой email</b>\n\nТекущий email: <code>${userData.email}</code>\n\nЕсли вы хотите изменить email, обратитесь в поддержку.`,
+          { parse_mode: "HTML", reply_markup: mainMenu }
+        );
+        return;
+      }
+    }
+
+    // Проверяем, не занят ли email другим пользователем
+    const existingUser = await checkEmailAvailability(email);
+    if (existingUser && existingUser.telegram_id !== telegramId) {
+      await ctx.reply(
+        "❌ <b>Email уже используется</b>\n\nЭтот email уже привязан к другому аккаунту. Если это ваш email, обратитесь в поддержку.",
+        { parse_mode: "HTML", reply_markup: mainMenu }
+      );
+      return;
+    }
+
+    // Привязываем email
+    await bindEmail(telegramId, email);
+    await ctx.reply(
+      `✅ <b>Email успешно привязан!</b>\n\nВаш аккаунт теперь связан с email: <code>${email}</code>\n\nТеперь вы можете входить на сайт через свой Telegram-аккаунт.`,
+      { parse_mode: "HTML", reply_markup: mainMenu }
+    );
+  } catch (error) {
+    console.error("Ошибка при привязке email:", error);
+    await ctx.reply(
+      "❌ <b>Произошла ошибка</b>\n\nНе удалось привязать email. Пожалуйста, попробуйте позже или обратитесь в поддержку.",
+      { parse_mode: "HTML", reply_markup: mainMenu }
+    );
+  }
+}
 
 export const start = async (ctx: MyContext) => {
   try {
     if (!ctx.from) {
       throw new Error("No 'from' field in context");
     }
-    const startPayload = ctx.match;
-    if (startPayload === "from_site") {
+
+    const telegramId = ctx.from.id;
+    const startPayload = ctx.match as string | undefined;
+
+    // Проверяем, является ли payload валидным email (deep-link для привязки)
+    const isEmailPayload = startPayload && isValidEmail(startPayload);
+
+    if (isEmailPayload) {
+      // Сценарий привязки email через deep-link
+      const email = startPayload;
+      const userRegistered = await isRegistered(ctx);
+
+      if (!userRegistered) {
+        // Пользователь не зарегистрирован - сначала регистрация с последующей привязкой email
+        await ctx.reply(
+          "👋 <b>Добро пожаловать в PandaVPN!</b>\n\nДля привязки email вам необходимо сначала зарегистрироваться.",
+          { parse_mode: "HTML" }
+        );
+        await ctx.conversation.enter("registrationWithEmailConversation", { overwrite: true }, email);
+        return;
+      } else {
+        // Пользователь уже зарегистрирован - привязываем email
+        await handleEmailBinding(ctx, telegramId, email);
+        return;
+      }
+    } else if (startPayload === "from_site") {
+      // Обычный переход с сайта (без email)
       const userRegistered = await isRegistered(ctx);
       if (!userRegistered) {
         await ctx.conversation.enter("registrationConversation");
@@ -29,6 +128,7 @@ export const start = async (ctx: MyContext) => {
         );
       }
     } else {
+      // Обычный /start без payload
       const userRegistered = await isRegistered(ctx);
       if (!userRegistered) {
         await ctx.conversation.enter("registrationConversation");
@@ -50,6 +150,9 @@ export const start = async (ctx: MyContext) => {
     }
   } catch (error) {
     console.error("Error in start command:", error);
+    await ctx.reply(
+      "❌ Произошла ошибка. Пожалуйста, попробуйте позже."
+    );
   }
 };
 

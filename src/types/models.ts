@@ -14,6 +14,8 @@ export interface IUserSubscription {
     promo_code?: string;
     promo_code_used?: boolean;
     last_notification_sent?: Date;
+    email?: string;
+    phone?: string;
 }
 
 export interface INotifyResponse {

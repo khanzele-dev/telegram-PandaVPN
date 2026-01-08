@@ -1,10 +1,89 @@
 import { getPhone, ImageKeyboard, MailingKeyboard } from "../shared/keyboard";
 import { MyConversation, MyConversationContext } from "../types";
-import { fetchRegisterUser } from "../config/requests";
+import {
+  fetchRegisterUser,
+  isValidEmail,
+  bindEmail,
+  checkEmailAvailability,
+  fetchUserData,
+} from "../config/requests";
+import { mainMenu } from "./menu";
 
-export async function registrationConversation(
+// Вспомогательная функция для привязки email (используется в conversations)
+async function handleEmailBindingInConversation(
+  ctx: MyConversationContext,
+  telegramId: number,
+  email: string
+): Promise<void> {
+  try {
+    // Проверяем валидность email
+    if (!isValidEmail(email)) {
+      await ctx.reply(
+        "❌ <b>Некорректный email</b>\n\nПожалуйста, проверьте правильность введённого адреса электронной почты.",
+        { parse_mode: "HTML", reply_markup: mainMenu }
+      );
+      return;
+    }
+
+    // Получаем данные текущего пользователя
+    let userData;
+    try {
+      userData = await fetchUserData(telegramId.toString());
+    } catch {
+      await ctx.reply(
+        "❌ <b>Ошибка</b>\n\nНе удалось получить данные пользователя. Попробуйте позже.",
+        { parse_mode: "HTML", reply_markup: mainMenu }
+      );
+      return;
+    }
+
+    // Проверяем, не привязан ли уже email к этому аккаунту
+    if (userData.email) {
+      if (userData.email.toLowerCase() === email.toLowerCase()) {
+        await ctx.reply(
+          `✅ <b>Email уже привязан</b>\n\nВаш аккаунт уже связан с этим email: <code>${email}</code>`,
+          { parse_mode: "HTML", reply_markup: mainMenu }
+        );
+        return;
+      } else {
+        await ctx.reply(
+          `⚠️ <b>К вашему аккаунту уже привязан другой email</b>\n\nТекущий email: <code>${userData.email}</code>\n\nЕсли вы хотите изменить email, обратитесь в поддержку.`,
+          { parse_mode: "HTML", reply_markup: mainMenu }
+        );
+        return;
+      }
+    }
+
+    // Проверяем, не занят ли email другим пользователем
+    const existingUser = await checkEmailAvailability(email);
+    if (existingUser && existingUser.telegram_id !== telegramId) {
+      await ctx.reply(
+        "❌ <b>Email уже используется</b>\n\nЭтот email уже привязан к другому аккаунту. Если это ваш email, обратитесь в поддержку.",
+        { parse_mode: "HTML", reply_markup: mainMenu }
+      );
+      return;
+    }
+
+    // Привязываем email
+    await bindEmail(telegramId, email);
+    await ctx.reply(
+      `✅ <b>Email успешно привязан!</b>\n\nВаш аккаунт теперь связан с email: <code>${email}</code>\n\nТеперь вы можете входить на сайт через свой Telegram-аккаунт.`,
+      { parse_mode: "HTML", reply_markup: mainMenu }
+    );
+  } catch (error) {
+    console.error("Ошибка при привязке email:", error);
+    await ctx.reply(
+      "❌ <b>Произошла ошибка</b>\n\nНе удалось привязать email. Пожалуйста, попробуйте позже или обратитесь в поддержку.",
+      { parse_mode: "HTML", reply_markup: mainMenu }
+    );
+  }
+}
+
+// Conversation для регистрации с последующей привязкой email
+export async function registrationWithEmailConversation(
   conversation: MyConversation,
-  ctx: MyConversationContext
+  ctx: MyConversationContext,
+  email?: string
 ) {
   await ctx.reply(
     "📱 <b>Регистрация PandaVPN</b>\n\nДля завершения регистрации, пожалуйста, поделитесь своим номером телефона.",
@@ -23,7 +102,7 @@ export async function registrationConversation(
         reply_markup: { remove_keyboard: true },
       }
     );
-    await registrationConversation(conversation, ctx);
+    await registrationWithEmailConversation(conversation, ctx, email);
     return;
   }
 
@@ -33,12 +112,22 @@ export async function registrationConversation(
   try {
     await fetchRegisterUser(telegramId, phoneNumber);
     await ctx.reply(
-      "✅ <b>Регистрация успешно завершена!</b>\n\nТеперь вы можете пользоваться всеми функциями бота.",
+      "✅ <b>Регистрация успешно завершена!</b>",
       {
         parse_mode: "HTML",
         reply_markup: { remove_keyboard: true },
       }
     );
+
+    // Если есть email для привязки - привязываем
+    if (email && isValidEmail(email)) {
+      await handleEmailBindingInConversation(ctx, telegramId, email);
+    } else {
+      await ctx.reply(
+        "Теперь вы можете пользоваться всеми функциями бота.",
+        { reply_markup: mainMenu }
+      );
+    }
   } catch (error) {
     console.error("Registration error:", error);
     await ctx.reply(
@@ -48,6 +137,13 @@ export async function registrationConversation(
       }
     );
   }
+}
+
+export async function registrationConversation(
+  conversation: MyConversation,
+  ctx: MyConversationContext
+) {
+  await registrationWithEmailConversation(conversation, ctx);
 }
 
 export async function broadcastConversation(
