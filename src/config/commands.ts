@@ -21,12 +21,6 @@ export const commands: ICommand[] = [
     action: help,
   },
   {
-    command: "subscription",
-    description: "Проверить подписку",
-    auth: false,
-    action: subscription,
-  },
-  {
     command: "admin",
     description: process.env.ADMIN_HINT as string,
     auth: true,

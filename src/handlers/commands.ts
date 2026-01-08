@@ -30,7 +30,11 @@ async function handleEmailBinding(
     }
 
     const existingUser = await checkEmailAvailability(email);
-    if (existingUser && existingUser.telegram_id && existingUser.telegram_id !== telegramId) {
+    if (
+      existingUser &&
+      existingUser.telegram_id &&
+      existingUser.telegram_id !== telegramId
+    ) {
       await ctx.reply(
         "❌ <b>Email уже используется</b>\n\nЭтот email уже привязан к другому аккаунту. Если это ваш email, обратитесь в поддержку.",
         { parse_mode: "HTML", reply_markup: mainMenu }
@@ -96,24 +100,15 @@ export const start = async (ctx: MyContext) => {
           "👋 <b>Добро пожаловать в PandaVPN!</b>\n\nДля привязки email вам необходимо сначала зарегистрироваться.",
           { parse_mode: "HTML" }
         );
-        await ctx.conversation.enter("registrationWithEmailConversation", { overwrite: true }, email);
+        await ctx.conversation.enter(
+          "registrationWithEmailConversation",
+          { overwrite: true },
+          email
+        );
         return;
       } else {
         await handleEmailBinding(ctx, telegramId, email);
         return;
-      }
-    } else if (startPayload === "from_site") {
-      const userRegistered = await isRegistered(ctx);
-      if (!userRegistered) {
-        await ctx.conversation.enter("registrationConversation");
-        return;
-      } else {
-        await ctx.reply(
-          "✅ Вы уже зарегистрированы! Добро пожаловать обратно.",
-          {
-            reply_markup: mainMenu,
-          }
-        );
       }
     } else {
       const userRegistered = await isRegistered(ctx);
@@ -217,6 +212,8 @@ export const subscription = async (ctx: MyContext) => {
     });
   } catch (error) {
     console.error("Error in subscription command:", error);
-    await ctx.reply("Произошла ошибка при получении информации о подписке. Попробуйте позже.");
+    await ctx.reply(
+      "Произошла ошибка при получении информации о подписке. Попробуйте позже."
+    );
   }
 };

@@ -1,7 +1,6 @@
 import { NotificationType } from "../types/models";
 import {
   fetchNotify,
-  generatePromoCode,
 } from "../config/requests";
 import {
   calculateSubscriptionStatus,
@@ -114,13 +113,6 @@ export const checkSubscriptionsAndNotify = async (): Promise<void> => {
 
       if (notificationType && shouldSendNotification(user, notificationType)) {
         let promoCode = user.promo_code;
-
-        if (
-          notificationType === NotificationType.TEN_DAYS_EXPIRED &&
-          !promoCode
-        ) {
-          promoCode = await generatePromoCode(user.telegram_id, 5);
-        }
 
         const message = await getNotificationMessage(
           notificationType,

@@ -1,18 +1,21 @@
 import { MyContext } from "../types";
 import { fetchUserData } from "../config/requests";
 
-export const isRegisteredById = async (telegramId: number): Promise<boolean> => {
+export const isRegisteredById = async (
+  telegramId: number
+): Promise<boolean> => {
   try {
     const data = await fetchUserData(telegramId.toString());
-    return !!data && !!data.telegram_id;
-  } catch (error: unknown) {
+    if (data) return true;
+    else return false;
+  } catch (error) {
     return false;
   }
 };
 
 export const isRegistered = async (ctx: MyContext): Promise<boolean> => {
   if (!ctx.from) return false;
-  return isRegisteredById(ctx.from.id);
+  return await isRegisteredById(ctx.from.id);
 };
 
 export const getUserData = async (
@@ -21,7 +24,7 @@ export const getUserData = async (
   try {
     const data = await fetchUserData(telegramId.toString());
     return data;
-  } catch (error: unknown) {
+  } catch (error) {
     return null;
   }
 };

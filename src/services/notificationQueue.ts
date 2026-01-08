@@ -1,7 +1,6 @@
 import Queue from "bull";
 import { Api } from "grammy";
 import { NotificationType } from "../types/models";
-import { updateLastNotification } from "../config/requests";
 import { NotificationKeyboard } from "../shared/keyboard";
 
 interface NotificationJob {
@@ -34,7 +33,6 @@ notificationQueue.process(async (job) => {
       link_preview_options: { is_disabled: true },
       reply_markup: NotificationKeyboard,
     });
-    await updateLastNotification(telegramId, notificationType);
   } catch (error) {
     throw error;
   }

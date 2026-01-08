@@ -12,7 +12,7 @@ export const api = axios.create({
 });
 
 export interface AdminFindParams {
-  telegram_id?: number;
+  telegram_id?: string;
   email?: string;
   phone?: string;
 }
@@ -28,12 +28,14 @@ export interface AdminFindResponse {
 export const adminFind = async (
   params: AdminFindParams
 ): Promise<AdminFindResponse> => {
-  const { data } = await api.get("/api/admin/find", { params });
+  const { data } = await api.get("/admin/find", { params });
   return data;
 };
 
-export const fetchUserData = async (telegramId: string): Promise<AdminFindResponse> => {
-  const { data } = await api.get("/api/admin/find", {
+export const fetchUserData = async (
+  telegramId: string
+): Promise<AdminFindResponse> => {
+  const { data } = await api.get("/admin/find", {
     params: { telegram_id: telegramId },
   });
   return data;
@@ -42,7 +44,7 @@ export const fetchUserData = async (telegramId: string): Promise<AdminFindRespon
 export const fetchRegisterUser = async (telegramId: number, phone: string) => {
   const { data } = await api.post("/bot/register", {
     telegram_id: telegramId,
-    phone: Number(phone),
+    phone: phone,
   });
   return data;
 };
@@ -61,38 +63,11 @@ export const fetchUserSubscription = async (
   return data;
 };
 
-export const generatePromoCode = async (
-  telegramId: string,
-  days: number = 5
-): Promise<string> => {
-  const { data } = await api.post("/bot/promo/generate", {
-    telegram_id: telegramId,
-    days: days,
-  });
-  return data.promo_code;
-};
-
-export const fetchAllActiveUsers = async (): Promise<IUserSubscription[]> => {
-  const { data } = await api.get("/bot/users/active");
-  return data;
-};
-
-export const updateLastNotification = async (
-  telegramId: string,
-  notificationType: string
-) => {
-  const { data } = await api.post("/bot/notification/update", {
-    telegram_id: telegramId,
-    notification_type: notificationType,
-  });
-  return data;
-};
-
 export const bindEmail = async (
   telegramId: number,
   email: string
 ): Promise<{ success: boolean; message?: string }> => {
-  const { data } = await api.post("/api/admin/bind-email", {
+  const { data } = await api.post("/admin/bind-email", {
     telegram_id: telegramId,
     email: email,
   });
@@ -103,7 +78,7 @@ export const checkEmailAvailability = async (
   email: string
 ): Promise<AdminFindResponse | null> => {
   try {
-    const { data } = await api.get("/api/admin/find", {
+    const { data } = await api.get("/admin/find", {
       params: { email },
     });
     return data;
@@ -119,4 +94,3 @@ export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
-
