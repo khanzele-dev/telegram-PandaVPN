@@ -9,14 +9,12 @@ import {
 } from "../config/requests";
 import { mainMenu } from "./menu";
 
-// Вспомогательная функция для привязки email (используется в conversations)
 async function handleEmailBindingInConversation(
   ctx: MyConversationContext,
   telegramId: number,
   email: string
 ): Promise<void> {
   try {
-    // Проверяем валидность email
     if (!isValidEmail(email)) {
       await ctx.reply(
         "❌ <b>Некорректный email</b>\n\nПожалуйста, проверьте правильность введённого адреса электронной почты.",
@@ -25,7 +23,6 @@ async function handleEmailBindingInConversation(
       return;
     }
 
-    // Получаем данные текущего пользователя
     let userData;
     try {
       userData = await fetchUserData(telegramId.toString());
@@ -37,7 +34,6 @@ async function handleEmailBindingInConversation(
       return;
     }
 
-    // Проверяем, не привязан ли уже email к этому аккаунту
     if (userData.email) {
       if (userData.email.toLowerCase() === email.toLowerCase()) {
         await ctx.reply(
@@ -54,7 +50,6 @@ async function handleEmailBindingInConversation(
       }
     }
 
-    // Проверяем, не занят ли email другим пользователем
     const existingUser = await checkEmailAvailability(email);
     if (existingUser && existingUser.telegram_id !== telegramId) {
       await ctx.reply(
@@ -64,22 +59,19 @@ async function handleEmailBindingInConversation(
       return;
     }
 
-    // Привязываем email
     await bindEmail(telegramId, email);
     await ctx.reply(
       `✅ <b>Email успешно привязан!</b>\n\nВаш аккаунт теперь связан с email: <code>${email}</code>\n\nТеперь вы можете входить на сайт через свой Telegram-аккаунт.`,
       { parse_mode: "HTML", reply_markup: mainMenu }
     );
   } catch (error) {
-    console.error("Ошибка при привязке email:", error);
     await ctx.reply(
-      "❌ <b>Произошла ошибка</b>\n\nНе удалось привязать email. Пожалуйста, попробуйте позже или обратитесь в поддержку.",
+      "❌ <b>Произошла ошибка</b>\n\nНе удалось привязать email. Попробуйте позже.",
       { parse_mode: "HTML", reply_markup: mainMenu }
     );
   }
 }
 
-// Conversation для регистрации с последующей привязкой email
 export async function registrationWithEmailConversation(
   conversation: MyConversation,
   ctx: MyConversationContext,
@@ -119,7 +111,6 @@ export async function registrationWithEmailConversation(
       }
     );
 
-    // Если есть email для привязки - привязываем
     if (email && isValidEmail(email)) {
       await handleEmailBindingInConversation(ctx, telegramId, email);
     } else {
@@ -129,13 +120,9 @@ export async function registrationWithEmailConversation(
       );
     }
   } catch (error) {
-    console.error("Registration error:", error);
-    await ctx.reply(
-      "❌ Произошла ошибка при регистрации. Пожалуйста, попробуйте позже.",
-      {
-        reply_markup: { remove_keyboard: true },
-      }
-    );
+    await ctx.reply("❌ Произошла ошибка при регистрации. Попробуйте позже.", {
+      reply_markup: { remove_keyboard: true },
+    });
   }
 }
 
@@ -213,7 +200,6 @@ export async function broadcastConversation(
     }
   } catch (err) {
     await ctx.reply("❌ Ошибка при обработке сообщения для рассылки");
-    console.error("Ошибка при обработке сообщения для рассылки:", err);
     return;
   }
   const { callbackQuery } = await conversation.waitFor("callback_query");
@@ -240,7 +226,6 @@ export async function broadcastConversation(
         );
       }
     } catch (err) {
-      console.error("Ошибка при редактировании сообщения:", err);
     }
     return;
   }
@@ -269,7 +254,6 @@ export async function broadcastConversation(
         );
       }
     } catch (err) {
-      console.error("Ошибка при редактировании сообщения:", err);
     }
 
     const users = [{ telegramId: 123456789 }];
@@ -292,7 +276,6 @@ export async function broadcastConversation(
         await new Promise((resolve) => setTimeout(resolve, 50));
       } catch (err) {
         failed++;
-        console.error(`Ошибка рассылки пользователю ${user.telegramId}:`, err);
       }
     }
 

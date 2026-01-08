@@ -1,33 +1,27 @@
-import { fetchUserData, AdminFindResponse } from "../config/requests";
 import { MyContext } from "../types";
+import { fetchUserData } from "../config/requests";
 
-export async function isRegisteredById(telegramId: number): Promise<boolean> {
+export const isRegisteredById = async (telegramId: number): Promise<boolean> => {
   try {
-    await fetchUserData(telegramId.toString());
-    console.log("User data found for telegramId:", telegramId);
-    return true;
-  } catch {
-    console.log("User data not found for telegramId:", telegramId);
+    const data = await fetchUserData(telegramId.toString());
+    return !!data && !!data.telegram_id;
+  } catch (error: unknown) {
     return false;
   }
-}
+};
 
-export async function isRegistered(ctx: MyContext): Promise<boolean> {
-  try {
-    if (!ctx.from?.id) {
-      throw new Error("Не удалось определить id пользователя");
-    }
-    return await isRegisteredById(ctx.from.id);
-  } catch (err) {
-    console.error("Ошибка проверки регистрации пользователя:", err);
-    return false;
-  }
-}
+export const isRegistered = async (ctx: MyContext): Promise<boolean> => {
+  if (!ctx.from) return false;
+  return isRegisteredById(ctx.from.id);
+};
 
-export async function getUserData(telegramId: number): Promise<AdminFindResponse | null> {
+export const getUserData = async (
+  telegramId: number
+): Promise<import("../config/requests").AdminFindResponse | null> => {
   try {
-    return await fetchUserData(telegramId.toString());
-  } catch {
+    const data = await fetchUserData(telegramId.toString());
+    return data;
+  } catch (error: unknown) {
     return null;
   }
-}
+};

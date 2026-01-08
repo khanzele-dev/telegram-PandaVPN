@@ -92,4 +92,3 @@ export const shouldSendNotification = (
 
   return daysSinceLastNotification >= 1;
 };
-  if (!subscription.last_notification_sent) {

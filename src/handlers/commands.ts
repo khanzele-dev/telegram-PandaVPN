@@ -69,9 +69,8 @@ async function handleEmailBinding(
       { parse_mode: "HTML", reply_markup: mainMenu }
     );
   } catch (error) {
-    console.error("Ошибка при привязке email:", error);
     await ctx.reply(
-      "❌ <b>Произошла ошибка</b>\n\nНе удалось привязать email. Пожалуйста, попробуйте позже или обратитесь в поддержку.",
+      "❌ <b>Произошла ошибка</b>\n\nНе удалось привязать email. Попробуйте позже.",
       { parse_mode: "HTML", reply_markup: mainMenu }
     );
   }
@@ -86,16 +85,13 @@ export const start = async (ctx: MyContext) => {
     const telegramId = ctx.from.id;
     const startPayload = ctx.match as string | undefined;
 
-    // Проверяем, является ли payload валидным email (deep-link для привязки)
     const isEmailPayload = startPayload && isValidEmail(startPayload);
 
     if (isEmailPayload) {
-      // Сценарий привязки email через deep-link
       const email = startPayload;
       const userRegistered = await isRegistered(ctx);
 
       if (!userRegistered) {
-        // Пользователь не зарегистрирован - сначала регистрация с последующей привязкой email
         await ctx.reply(
           "👋 <b>Добро пожаловать в PandaVPN!</b>\n\nДля привязки email вам необходимо сначала зарегистрироваться.",
           { parse_mode: "HTML" }
@@ -103,12 +99,10 @@ export const start = async (ctx: MyContext) => {
         await ctx.conversation.enter("registrationWithEmailConversation", { overwrite: true }, email);
         return;
       } else {
-        // Пользователь уже зарегистрирован - привязываем email
         await handleEmailBinding(ctx, telegramId, email);
         return;
       }
     } else if (startPayload === "from_site") {
-      // Обычный переход с сайта (без email)
       const userRegistered = await isRegistered(ctx);
       if (!userRegistered) {
         await ctx.conversation.enter("registrationConversation");
@@ -122,7 +116,6 @@ export const start = async (ctx: MyContext) => {
         );
       }
     } else {
-      // Обычный /start без payload
       const userRegistered = await isRegistered(ctx);
       if (!userRegistered) {
         await ctx.conversation.enter("registrationConversation");
@@ -143,10 +136,7 @@ export const start = async (ctx: MyContext) => {
       }
     }
   } catch (error) {
-    console.error("Error in start command:", error);
-    await ctx.reply(
-      "❌ Произошла ошибка. Пожалуйста, попробуйте позже."
-    );
+    await ctx.reply("❌ Произошла ошибка. Попробуйте позже.");
   }
 };
 
@@ -226,9 +216,6 @@ export const subscription = async (ctx: MyContext) => {
       link_preview_options: { is_disabled: true },
     });
   } catch (error) {
-    console.error("Error in subscription command:", error);
-    await ctx.reply(
-      "Произошла ошибка при получении информации о подписке. Пожалуйста, попробуйте позже."
-    );
+    await ctx.reply("Произошла ошибка при получении информации о подписке. Попробуйте позже.");
   }
 };

@@ -34,19 +34,15 @@ notificationQueue.process(async (job) => {
       link_preview_options: { is_disabled: true },
       reply_markup: NotificationKeyboard,
     });
-
     await updateLastNotification(telegramId, notificationType);
   } catch (error) {
-    console.error(`Error sending notification to ${telegramId}:`, error);
     throw error;
   }
 });
 
-notificationQueue.on("completed", (job) => {});
-
-notificationQueue.on("failed", (job, err) => {});
-
-notificationQueue.on("error", (error) => {});
+notificationQueue.on("completed", () => {});
+notificationQueue.on("failed", () => {});
+notificationQueue.on("error", () => {});
 
 export const addNotificationToQueue = async (
   telegramId: string,
@@ -66,15 +62,6 @@ export const addNotificationToQueue = async (
       promoCode,
       daysExpired,
     },
-    {
-      jobId,
-      attempts: 1,
-      backoff: {
-        type: "exponential",
-        delay: 2000,
-      },
-      removeOnComplete: true,
-      removeOnFail: false,
-    }
+    { jobId, attempts: 1, backoff: { type: "exponential", delay: 2000 }, removeOnComplete: true, removeOnFail: false }
   );
 };

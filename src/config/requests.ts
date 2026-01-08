@@ -4,7 +4,6 @@ import { IUserSubscription } from "../types/models";
 
 dotenv.config({ path: "src/.env" });
 
-// Универсальный axios-инстанс с обязательным заголовком X-INTERNAL-TOKEN
 export const api = axios.create({
   baseURL: process.env.API_URL,
   headers: {
@@ -12,7 +11,6 @@ export const api = axios.create({
   },
 });
 
-// Типы для API-ответов
 export interface AdminFindParams {
   telegram_id?: number;
   email?: string;
@@ -27,7 +25,6 @@ export interface AdminFindResponse {
   [key: string]: unknown;
 }
 
-// Универсальный поиск пользователя (новый API)
 export const adminFind = async (
   params: AdminFindParams
 ): Promise<AdminFindResponse> => {
@@ -55,7 +52,6 @@ export const fetchNotify = async () => {
   return data;
 };
 
-// subscription requests
 export const fetchUserSubscription = async (
   telegramId: string
 ): Promise<IUserSubscription> => {
@@ -92,7 +88,6 @@ export const updateLastNotification = async (
   return data;
 };
 
-// Email binding requests (новый API)
 export const bindEmail = async (
   telegramId: number,
   email: string
@@ -104,7 +99,6 @@ export const bindEmail = async (
   return data;
 };
 
-// Проверка, занят ли email другим пользователем
 export const checkEmailAvailability = async (
   email: string
 ): Promise<AdminFindResponse | null> => {
@@ -114,7 +108,6 @@ export const checkEmailAvailability = async (
     });
     return data;
   } catch (error: unknown) {
-    // Если пользователь не найден - email свободен
     if (axios.isAxiosError(error) && error.response?.status === 404) {
       return null;
     }
@@ -122,8 +115,8 @@ export const checkEmailAvailability = async (
   }
 };
 
-// Валидация email
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
+
