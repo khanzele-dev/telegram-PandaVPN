@@ -69,8 +69,35 @@ export const bindEmail = async (
 ): Promise<{ success: boolean; message?: string }> => {
   const { data } = await api.post("/admin/bind-email", {
     telegram_id: telegramId,
-    email: email,
+    email,
   });
+  return data;
+};
+
+export const getUsers = async (): Promise<{
+  users: [{ telegram_id: number; didBlock: boolean }];
+  total: number;
+}> => {
+  const { data } = await api.get("/bot/users/didblock");
+  return data;
+};
+
+export const setDidBlock = async (
+  telegramId: number,
+  didBlock: boolean
+): Promise<{ success: boolean; telegram_id: number; didBlock: boolean }> => {
+  const { data } = await api.put("/bot/didblock", {
+    telegram_id: telegramId,
+    didBlock,
+  });
+  return data;
+};
+
+export const getStatistic = async (): Promise<{
+  total_users_with_telegram: number;
+  blocked_users: number;
+}> => {
+  const { data } = await api.get("/bot/stats/didblock");
   return data;
 };
 

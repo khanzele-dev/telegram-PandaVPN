@@ -1,13 +1,18 @@
 import dotenv from "dotenv";
 import { hydrate } from "@grammyjs/hydrate";
 import { commands } from "./config/commands";
-import { adminMenu, mainMenu } from "./handlers/menu";
+import { adminMenu, helpMenu, mainMenu } from "./handlers/menu";
 import { MyContext, MyConversationContext } from "./types";
 import { conversations, createConversation } from "@grammyjs/conversations";
 import { Bot, GrammyError, HttpError, NextFunction } from "grammy";
-import { broadcastConversation, registrationConversation, registrationWithEmailConversation } from "./handlers/conversations";
+import {
+  broadcastConversation,
+  registrationConversation,
+  registrationWithEmailConversation,
+} from "./handlers/conversations";
 import { initSubscriptionScheduler } from "./services/scheduler";
 import "./services/notificationQueue";
+import { setDidBlock } from "./config/requests";
 
 dotenv.config({ path: "src/.env" });
 
@@ -30,8 +35,9 @@ bot.use(createConversation(broadcastConversation));
 bot.use(createConversation(registrationConversation));
 bot.use(createConversation(registrationWithEmailConversation));
 
-bot.use(adminMenu);
 bot.use(mainMenu);
+bot.use(helpMenu);
+bot.use(adminMenu);
 
 commands
   .filter((command) => command.auth)
@@ -53,6 +59,26 @@ commands
     bot.command(command.command, command.action);
     bot.callbackQuery(command.command, command.action);
   });
+
+bot.chatType("private").on("my_chat_member", async (ctx) => {
+  try {
+    const status = ctx.myChatMember?.new_chat_member?.status;
+    const userId = ctx.from?.id;
+
+    if (!userId) return;
+
+    if (status === "kicked") {
+      console.log(`🚫 User ${userId} blocked the bot`);
+      await setDidBlock(userId, true);
+    } else if (status === "member") {
+      console.log(`✅ User ${userId} unblocked the bot`);
+      await setDidBlock(userId, false);
+    }
+  } catch (err) {
+    console.log("Ошибка в my_chat_member", err);
+    throw err;
+  }
+});
 
 bot.catch((err) => {
   const ctx = err.ctx;

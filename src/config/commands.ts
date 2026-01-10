@@ -1,4 +1,4 @@
-import { admin, help, info, start, subscription } from "../handlers/commands";
+import { admin, help, info, start } from "../handlers/commands";
 import { ICommand } from "../types/models";
 
 export const commands: ICommand[] = [

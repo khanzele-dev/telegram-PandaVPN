@@ -3,6 +3,8 @@ import { MyContext } from "../types";
 import { Menu } from "@grammyjs/menu";
 import { help, info } from "./commands";
 
+export const helpMenu = new Menu<MyContext>("help-menu").text("🤳🏻 Поддержка", help);
+
 export const mainMenu = new Menu<MyContext>("main-menu")
   .url("🌐 Продлить VPN", "https://vpn-p.ru/auth/signup")
   .row()

@@ -6,8 +6,14 @@ import {
   bindEmail,
   checkEmailAvailability,
   fetchUserData,
+  getUsers,
 } from "../config/requests";
 import { mainMenu } from "./menu";
+import { isAxiosError } from "axios";
+
+function isEmailConflict(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 409;
+}
 
 async function handleEmailBindingInConversation(
   ctx: MyConversationContext,
@@ -24,14 +30,25 @@ async function handleEmailBindingInConversation(
     }
 
     const existingUser = await checkEmailAvailability(email);
-    if (existingUser && existingUser.telegram_id && existingUser.telegram_id !== telegramId) {
+    console.log(existingUser);
+    if (
+      existingUser &&
+      existingUser.telegram_id &&
+      existingUser.telegram_id !== telegramId
+    ) {
       await ctx.reply(
         "❌ <b>Email уже используется</b>\n\nЭтот email уже привязан к другому аккаунту. Если это ваш email, обратитесь в поддержку.",
         { parse_mode: "HTML", reply_markup: mainMenu }
       );
       return;
     }
-
+    if (!existingUser) {
+      await ctx.reply(
+        "❌ <b>Пользователь не найден</b>\n\nМожет email был ошибочен, перепроверьте почту и попробуйте еще раз.",
+        { parse_mode: "HTML", reply_markup: mainMenu }
+      );
+      return;
+    }
     let userData;
     try {
       userData = await fetchUserData(telegramId.toString());
@@ -58,13 +75,20 @@ async function handleEmailBindingInConversation(
         return;
       }
     }
-
     await bindEmail(telegramId, email);
     await ctx.reply(
       `✅ <b>Email успешно привязан!</b>\n\nВаш аккаунт теперь связан с email: <code>${email}</code>\n\nТеперь вы можете входить на сайт через свой Telegram-аккаунт.`,
       { parse_mode: "HTML", reply_markup: mainMenu }
     );
   } catch (error) {
+    if (isEmailConflict(error)) {
+      await ctx.reply(
+        "❌ <b>Email уже используется</b>\n\nЭтот email уже привязан к другому аккаунту. Если это ваш email — обратитесь в поддержку.",
+        { parse_mode: "HTML", reply_markup: mainMenu }
+      );
+      return;
+    }
+
     await ctx.reply(
       "❌ <b>Произошла ошибка</b>\n\nНе удалось привязать email. Попробуйте позже.",
       { parse_mode: "HTML", reply_markup: mainMenu }
@@ -103,23 +127,20 @@ export async function registrationWithEmailConversation(
 
   try {
     await fetchRegisterUser(telegramId, phoneNumber);
-    await ctx.reply(
-      "✅ <b>Регистрация успешно завершена!</b>",
-      {
-        parse_mode: "HTML",
-        reply_markup: { remove_keyboard: true },
-      }
-    );
+    await ctx.reply("✅ <b>Регистрация успешно завершена!</b>", {
+      parse_mode: "HTML",
+      reply_markup: { remove_keyboard: true },
+    });
 
     if (email && isValidEmail(email)) {
       await handleEmailBindingInConversation(ctx, telegramId, email);
     } else {
-      await ctx.reply(
-        "Теперь вы можете пользоваться всеми функциями бота.",
-        { reply_markup: mainMenu }
-      );
+      await ctx.reply("Теперь вы можете пользоваться всеми функциями бота.", {
+        reply_markup: mainMenu,
+      });
     }
   } catch (error) {
+    console.log(error);
     await ctx.reply("❌ Произошла ошибка при регистрации. Попробуйте позже.", {
       reply_markup: { remove_keyboard: true },
     });
@@ -225,8 +246,7 @@ export async function broadcastConversation(
           { reply_markup: undefined }
         );
       }
-    } catch (err) {
-    }
+    } catch (err) {}
     return;
   }
 
@@ -253,22 +273,22 @@ export async function broadcastConversation(
           { reply_markup: undefined }
         );
       }
-    } catch (err) {
-    }
+    } catch (err) {}
 
-    const users = [{ telegramId: 123456789 }];
+    const users = (await getUsers()).users;
     let success = 0;
     let failed = 0;
 
     for (const user of users) {
       try {
+        if (user.didBlock == true) failed++;
         if (photo) {
-          await ctx.api.sendPhoto(user.telegramId as number, photo, {
+          await ctx.api.sendPhoto(user.telegram_id as number, photo, {
             caption: message.text,
             caption_entities: message.entities,
           });
         } else {
-          await ctx.api.sendMessage(user.telegramId as number, message.text, {
+          await ctx.api.sendMessage(user.telegram_id as number, message.text, {
             entities: message.entities,
           });
         }
